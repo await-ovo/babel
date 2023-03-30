@@ -271,6 +271,39 @@ describe("@babel/template", function () {
 
       expect(generator(result).code).toEqual("<div>{'content'}</div>");
     });
+
+    it("should work with ExportNamedDeclaration when use .ast", () => {
+      const name = "someValue";
+      const result = template.ast`
+        export { ${name} };
+        $0;
+        $0;
+        $$0;
+      `;
+      expect(result[0].type).toBe("ExportNamedDeclaration");
+      expect(result[0].specifiers[0].local.name).toBe("someValue");
+      expect(result[0].specifiers[0].exported.name).toBe("someValue");
+      expect(result[1].type).toBe("ExpressionStatement");
+      expect(result[1].expression.name).toBe("$0");
+      expect(result[2].expression.name).toBe("$0");
+      expect(result[3].expression.name).toBe("$$0");
+    });
+
+    it("should work with ObjectExpression when use .ast", () => {
+      const name = "someValue";
+      const result = template.ast`
+        const a = { ${name} };
+        $0;
+      `;
+      expect(result[0].type).toBe("VariableDeclaration");
+      expect(result[0].declarations[0].init.properties[0].key.name).toBe(
+        "someValue",
+      );
+      expect(result[0].declarations[0].init.properties[0].value.name).toBe(
+        "someValue",
+      );
+      expect(result[1].expression.name).toBe("$0");
+    });
   });
 
   describe(".syntacticPlaceholders", () => {

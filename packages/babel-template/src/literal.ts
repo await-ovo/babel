@@ -49,6 +49,7 @@ function buildLiteralData<T>(
   let nameSet: Set<string>;
   let metadata;
   let prefix = "";
+  let existingDuplicatedWithNames = false;
 
   do {
     // If there are cases where the template already contains $0 or any other
@@ -58,6 +59,7 @@ function buildLiteralData<T>(
     const result = buildTemplateCode(tpl, prefix);
 
     names = result.names;
+    existingDuplicatedWithNames = result.existingDuplicatedWithNames;
     nameSet = new Set(names);
     metadata = parseAndBuildMetadata(formatter, formatter.code(result.code), {
       parser: opts.parser,
@@ -77,7 +79,10 @@ function buildLiteralData<T>(
     });
   } while (
     metadata.placeholders.some(
-      placeholder => placeholder.isDuplicate && nameSet.has(placeholder.name),
+      placeholder =>
+        existingDuplicatedWithNames &&
+        placeholder.isDuplicate &&
+        nameSet.has(placeholder.name),
     )
   );
 
@@ -87,17 +92,26 @@ function buildLiteralData<T>(
 function buildTemplateCode(
   tpl: Array<string>,
   prefix: string,
-): { names: Array<string>; code: string } {
+): {
+  names: Array<string>;
+  code: string;
+  existingDuplicatedWithNames: boolean;
+} {
   const names = [];
+  const rawCode = tpl.join();
 
   let code = tpl[0];
+  let existingDuplicatedWithNames = false;
 
   for (let i = 1; i < tpl.length; i++) {
     const value = `${prefix}${i - 1}`;
     names.push(value);
+    if (!existingDuplicatedWithNames) {
+      existingDuplicatedWithNames = rawCode.includes(value);
+    }
 
     code += value + tpl[i];
   }
 
-  return { names, code };
+  return { names, code, existingDuplicatedWithNames };
 }
